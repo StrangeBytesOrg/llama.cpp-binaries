@@ -1,0 +1,116 @@
+kind: pipeline
+type: docker
+name: default
+trigger:
+  branch:
+    - main
+  event:
+    - push
+
+environment:
+  LLAMA_CPP_VERSION: b3726
+
+steps:
+- name: Get llama.cpp
+  image: ubuntu:24.04
+  commands:
+  - mkdir builds
+  - apt-get update && apt-get install -y git
+  - git clone https://github.com/ggerganov/llama.cpp
+  - cd llama.cpp
+  - git checkout $${LLAMA_CPP_VERSION}
+
+- name: Build CPU
+  image: ubuntu:24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - cd llama.cpp
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  - cmake -B build-cpu -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build-cpu --config Release --target llama-server -j $(nproc)
+  - cd ./build-cpu/bin/
+  - tar -acf /drone/src/builds/llama-server-cpu-$${LLAMA_CPP_VERSION}.tar.gz llama-server
+
+- name: Build Cuda
+  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - cd llama.cpp
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_CUDA_ARCHITECTURES=all -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build-cuda --config Release --target llama-server -j $(nproc)
+  - cd ./build-cuda/bin/
+  - tar -acf /drone/src/builds/llama-server-cuda-$${LLAMA_CPP_VERSION}.tar.gz ./llama-server
+  
+- name: Build Vulkan
+  image: ubuntu:24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - cd llama.cpp
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
+  - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+  - apt-get update && apt-get install -y vulkan-sdk libcurl4-openssl-dev
+  - cmake -B build-vulkan -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build-vulkan --config Release --target llama-server -j $(nproc)
+  - cd ./build-vulkan/bin/
+  - tar -acf /drone/src/builds/llama-server-vulkan-$${LLAMA_CPP_VERSION}.tar.gz ./llama-server
+
+# - name: Build Rocm
+#   image: rocm/dev-ubuntu-24.04:6.2-complete
+#   depends_on:
+#   - Get llama.cpp
+#   commands:
+#   - cd llama.cpp
+#   - apt-get update && apt-get install -y git curl wget cmake build-essential
+#   # - export GPU_TARGETS=gfx803 gfx900 gfx906 gfx908 gfx90a gfx1010 gfx1030 gfx1100 gfx1101 gfx1102
+#   - export HIPCXX="$(hipconfig -l)/clang"
+#   - export HIP_PATH="$(hipconfig -R)" 
+#   - cmake -B build-rocm -S . -DGGML_HIPBLAS=ON -DAMDGPU_TARGETS=gfx1030 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined -DCMAKE_C_FLAGS="-fPIE" -DCMAKE_CXX_FLAGS="-fPIE"
+#   - cmake --build build-rocm --config Release --target llama-server -j $(nproc)
+#   - cd ./build-rocm/bin
+#   - tar -acf /drone/src/builds/llama-server-rocm-$${LLAMA_CPP_VERSION}.tar.gz llama-server
+
+- name: Upload to Github
+  image: ghcr.io/supportpal/github-gh-cli
+  depends_on:
+  - Build CPU
+  - Build Cuda
+  - Build Vulkan
+  environment:
+    GITHUB_TOKEN:
+      from_secret: GITHUB_TOKEN
+  entrypoint: ["/bin/bash"]
+  commands:
+  - ls -lh ./builds
+  - if gh release view $${LLAMA_CPP_VERSION}; then echo "Release $${LLAMA_CPP_VERSION} already exists"; else gh release create $${LLAMA_CPP_VERSION} -t $${LLAMA_CPP_VERSION} -n "Automated release"; fi
+  - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
+
+# - name: Upload to R2
+#   image: ubuntu:24.04
+#   environment:
+#     R2_ACCESS_KEY_ID:
+#       from_secret: R2_ACCESS_KEY_ID
+#     R2_SECRET_ACCESS_KEY:
+#       from_secret: R2_SECRET_ACCESS_KEY
+#     R2_ACCOUNT_ID:
+#       from_secret: R2_ACCOUNT_ID
+#   commands:
+#   - apt-get update && apt-get install -y curl wget unzip
+#   # Install Rclone
+#   - curl https://rclone.org/install.sh | bash
+#   - mkdir -p ~/.config/rclone
+#   - echo "[r2]" > ~/.config/rclone/rclone.conf
+#   - echo "type = s3" >> ~/.config/rclone/rclone.conf
+#   - echo "provider = Cloudflare" >> ~/.config/rclone/rclone.conf
+#   - echo "access_key_id = $R2_ACCESS_KEY_ID" >> ~/.config/rclone/rclone.conf
+#   - echo "secret_access_key = $R2_SECRET_ACCESS_KEY" >> ~/.config/rclone/rclone.conf
+#   - echo "endpoint = https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" >> ~/.config/rclone/rclone.conf
+#   - echo "acl = private" >> ~/.config/rclone/rclone.conf
+#   - echo "no_check_bucket = true" >> ~/.config/rclone/rclone.conf
+#   # Upload to Cloudflare R2
+#   - ls -l /builds
+#   - rclone copy --include "*.tar.gz" /builds/ r2:chat-app-releases/llama-binaries/
