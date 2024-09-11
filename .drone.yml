@@ -1,19 +1,15 @@
 kind: pipeline
 type: docker
-name: default
-trigger:
-  branch:
-    - main
-  event:
-    - push
+name: Build Llama Server Binaries
 
 environment:
-  LLAMA_CPP_VERSION: b3726
+  LLAMA_CPP_VERSION: b3731
 
 steps:
 - name: Get llama.cpp
   image: ubuntu:24.04
   commands:
+  - echo "Building Llamacpp Version $LLAMA_CPP_VERSION"
   - mkdir builds
   - apt-get update && apt-get install -y git
   - git clone https://github.com/ggerganov/llama.cpp
@@ -39,7 +35,8 @@ steps:
   commands:
   - cd llama.cpp
   - apt-get update && apt-get install -y git curl wget cmake build-essential
-  - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_CUDA_ARCHITECTURES=all -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  # -DCMAKE_CUDA_ARCHITECTURES=61
+  - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
   - cmake --build build-cuda --config Release --target llama-server -j $(nproc)
   - cd ./build-cuda/bin/
   - tar -acf /drone/src/builds/llama-server-cuda-$${LLAMA_CPP_VERSION}.tar.gz ./llama-server
@@ -88,29 +85,3 @@ steps:
   - ls -lh ./builds
   - if gh release view $${LLAMA_CPP_VERSION}; then echo "Release $${LLAMA_CPP_VERSION} already exists"; else gh release create $${LLAMA_CPP_VERSION} -t $${LLAMA_CPP_VERSION} -n "Automated release"; fi
   - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
-
-# - name: Upload to R2
-#   image: ubuntu:24.04
-#   environment:
-#     R2_ACCESS_KEY_ID:
-#       from_secret: R2_ACCESS_KEY_ID
-#     R2_SECRET_ACCESS_KEY:
-#       from_secret: R2_SECRET_ACCESS_KEY
-#     R2_ACCOUNT_ID:
-#       from_secret: R2_ACCOUNT_ID
-#   commands:
-#   - apt-get update && apt-get install -y curl wget unzip
-#   # Install Rclone
-#   - curl https://rclone.org/install.sh | bash
-#   - mkdir -p ~/.config/rclone
-#   - echo "[r2]" > ~/.config/rclone/rclone.conf
-#   - echo "type = s3" >> ~/.config/rclone/rclone.conf
-#   - echo "provider = Cloudflare" >> ~/.config/rclone/rclone.conf
-#   - echo "access_key_id = $R2_ACCESS_KEY_ID" >> ~/.config/rclone/rclone.conf
-#   - echo "secret_access_key = $R2_SECRET_ACCESS_KEY" >> ~/.config/rclone/rclone.conf
-#   - echo "endpoint = https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" >> ~/.config/rclone/rclone.conf
-#   - echo "acl = private" >> ~/.config/rclone/rclone.conf
-#   - echo "no_check_bucket = true" >> ~/.config/rclone/rclone.conf
-#   # Upload to Cloudflare R2
-#   - ls -l /builds
-#   - rclone copy --include "*.tar.gz" /builds/ r2:chat-app-releases/llama-binaries/
