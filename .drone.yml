@@ -3,7 +3,7 @@ type: docker
 name: Build Llama Server Binaries
 
 environment:
-  LLAMA_CPP_VERSION: b3731
+  LLAMA_CPP_VERSION: b3735
 
 steps:
 - name: Get llama.cpp
