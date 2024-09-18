@@ -31,7 +31,7 @@ steps:
   - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
 
 - name: Build Cuda
-  image: nvidia/cuda:12.6.0-devel-ubuntu22.04
+  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
   depends_on:
   - Get llama.cpp
   commands:
