@@ -18,30 +18,30 @@ steps:
   - echo "Building llama.cpp Version $LLAMA_CPP_VERSION"
   - echo $LLAMA_CPP_VERSION > /drone/src/builds/llama-cpp-version.txt
 
-- name: Build CPU
-  image: ubuntu:24.04
-  depends_on:
-  - Get llama.cpp
-  commands:
-  - cd llama.cpp
-  - apt-get update && apt-get install -y git curl wget cmake build-essential
-  - cmake -B build-cpu -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-  - cmake --build build-cpu --config Release --target llama-server -j $(nproc)
-  - cd ./build-cpu/bin/
-  - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
+# - name: Build CPU
+#   image: ubuntu:24.04
+#   depends_on:
+#   - Get llama.cpp
+#   commands:
+#   - cd llama.cpp
+#   - apt-get update && apt-get install -y git curl wget cmake build-essential
+#   - cmake -B build-cpu -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+#   - cmake --build build-cpu --config Release --target llama-server -j $(nproc)
+#   - cd ./build-cpu/bin/
+#   - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
 
-- name: Build Cuda
-  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
-  depends_on:
-  - Get llama.cpp
-  commands:
-  - cd llama.cpp
-  - apt-get update && apt-get install -y git curl wget cmake build-essential
-  # -DCMAKE_CUDA_ARCHITECTURES=61
-  - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-  - cmake --build build-cuda --config Release --target llama-server -j $(nproc)
-  - cd ./build-cuda/bin/
-  - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
+# - name: Build Cuda
+#   image: nvidia/cuda:12.6.0-devel-ubuntu24.04
+#   depends_on:
+#   - Get llama.cpp
+#   commands:
+#   - cd llama.cpp
+#   - apt-get update && apt-get install -y git curl wget cmake build-essential
+#   # -DCMAKE_CUDA_ARCHITECTURES=61
+#   - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+#   - cmake --build build-cuda --config Release --target llama-server -j $(nproc)
+#   - cd ./build-cuda/bin/
+#   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
   image: ubuntu:24.04
