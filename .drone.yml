@@ -45,8 +45,8 @@ steps:
   
 - name: Build Vulkan
   image: ubuntu:noble-20240801
-  depends_on:
-  - Get llama.cpp
+  # depends_on:
+  # - Get llama.cpp
   commands:
   - cd llama.cpp
   - apt-get update && apt-get install -y git curl wget cmake build-essential
