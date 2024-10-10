@@ -73,22 +73,22 @@ steps:
 #   - cd ./build-rocm/bin
 #   - tar -acf /drone/src/builds/llama-server-rocm.tar.gz llama-server
 
-- name: Upload to Github
-  image: ghcr.io/supportpal/github-gh-cli
-  depends_on:
-  - Build CPU
-  - Build Cuda
-  - Build Vulkan
-  environment:
-    GITHUB_TOKEN:
-      from_secret: GITHUB_TOKEN
-  entrypoint: ["/bin/bash"]
-  commands:
-  - ls -lh ./builds
-  - export LLAMA_CPP_VERSION=$(cat ./builds/llama-cpp-version.txt)
-  - |
-    if gh release view $LLAMA_CPP_VERSION;
-    then echo "Release ${LLAMA_CPP_VERSION} already exists";
-    else gh release create $LLAMA_CPP_VERSION -t $LLAMA_CPP_VERSION -n "Automated release";
-    fi
-  - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
+# - name: Upload to Github
+#   image: ghcr.io/supportpal/github-gh-cli
+#   depends_on:
+#   - Build CPU
+#   - Build Cuda
+#   - Build Vulkan
+#   environment:
+#     GITHUB_TOKEN:
+#       from_secret: GITHUB_TOKEN
+#   entrypoint: ["/bin/bash"]
+#   commands:
+#   - ls -lh ./builds
+#   - export LLAMA_CPP_VERSION=$(cat ./builds/llama-cpp-version.txt)
+#   - |
+#     if gh release view $LLAMA_CPP_VERSION;
+#     then echo "Release ${LLAMA_CPP_VERSION} already exists";
+#     else gh release create $LLAMA_CPP_VERSION -t $LLAMA_CPP_VERSION -n "Automated release";
+#     fi
+#   - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
