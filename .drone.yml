@@ -3,20 +3,20 @@ type: docker
 name: Build Llama Server Binaries
 
 steps:
-- name: Get llama.cpp
-  image: drone/git
-  commands:
-  - mkdir builds
-  - git clone https://github.com/ggerganov/llama.cpp
-  - cd llama.cpp
-  - |
-    if [ -n "$VERSION" ];
-    then export LLAMA_CPP_VERSION=$VERSION;
-    else export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
-    fi
-  - git checkout ${LLAMA_CPP_VERSION}
-  - echo "Building llama.cpp Version $LLAMA_CPP_VERSION"
-  - echo $LLAMA_CPP_VERSION > /drone/src/builds/llama-cpp-version.txt
+# - name: Get llama.cpp
+#   image: drone/git
+#   commands:
+#   - mkdir builds
+#   - git clone https://github.com/ggerganov/llama.cpp
+#   - cd llama.cpp
+#   - |
+#     if [ -n "$VERSION" ];
+#     then export LLAMA_CPP_VERSION=$VERSION;
+#     else export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
+#     fi
+#   - git checkout ${LLAMA_CPP_VERSION}
+#   - echo "Building llama.cpp Version $LLAMA_CPP_VERSION"
+#   - echo $LLAMA_CPP_VERSION > /drone/src/builds/llama-cpp-version.txt
 
 # - name: Build CPU
 #   image: ubuntu:24.04
@@ -53,6 +53,8 @@ steps:
   - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
   - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
   - apt-get update && apt-get install -y vulkan-sdk libcurl4-openssl-dev
+  - git clone https://github.com/ggerganov/llama.cpp
+  - cd llama.cpp
   - cmake -B build-vulkan -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
   - cmake --build build-vulkan --config Release --target llama-server -j $(nproc)
   - cd ./build-vulkan/bin/
