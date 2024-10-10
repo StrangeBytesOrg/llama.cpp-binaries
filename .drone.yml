@@ -44,14 +44,14 @@ steps:
 #   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
-  image: ubuntu:noble-20240801
+  image: ubuntu:jammy
   # depends_on:
   # - Get llama.cpp
   commands:
   # - cd llama.cpp
   - apt-get update && apt-get install -y git curl wget cmake build-essential
-  - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
-  - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+  - wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add -
+  - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
   - apt-get update && apt-get install -y vulkan-sdk libcurl4-openssl-dev
   - git clone https://github.com/ggerganov/llama.cpp
   - cd llama.cpp
