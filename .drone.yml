@@ -44,7 +44,7 @@ steps:
 #   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
-  image: ubuntu:24.04
+  image: ubuntu:noble-20240801
   depends_on:
   - Get llama.cpp
   commands:
