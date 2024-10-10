@@ -54,7 +54,6 @@ steps:
   - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
   - apt-get update && apt-get install -y vulkan-sdk libcurl4-openssl-dev
   - cmake -B build-vulkan -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-  - chmod +x bin/vulkan-shaders-gen
   - cmake --build build-vulkan --config Release --target llama-server -j $(nproc)
   - cd ./build-vulkan/bin/
   - tar -acf /drone/src/builds/llama-server-vulkan.tar.gz ./llama-server
