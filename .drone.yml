@@ -17,42 +17,41 @@ steps:
   - git checkout ${LLAMA_CPP_VERSION}
   - echo "Building llama.cpp Version $LLAMA_CPP_VERSION"
 
-# - name: Build CPU
-#   image: ubuntu:24.04
-#   depends_on:
-#   - Get llama.cpp
-#   commands:
-#   - cd llama.cpp
-#   - apt-get update && apt-get install -y git curl wget cmake build-essential
-#   - cmake -B build-cpu -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-#   - cmake --build build-cpu --config Release --target llama-server -j $(nproc)
-#   - cd ./build-cpu/bin/
-#   - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
+- name: Build CPU
+  image: ubuntu:24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  - cp -r /drone/src/llama.cpp /app && cd /app
+  - cmake -B build -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build --config Release --target llama-server -j $(nproc)
+  - cd ./build/bin/
+  - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
 
-# - name: Build Cuda
-#   image: nvidia/cuda:12.6.0-devel-ubuntu24.04
-#   depends_on:
-#   - Get llama.cpp
-#   commands:
-#   - cd llama.cpp
-#   - apt-get update && apt-get install -y git curl wget cmake build-essential
-#   # -DCMAKE_CUDA_ARCHITECTURES=61
-#   - cmake -B build-cuda -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-#   - cmake --build build-cuda --config Release --target llama-server -j $(nproc)
-#   - cd ./build-cuda/bin/
-#   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
+- name: Build Cuda
+  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  # -DCMAKE_CUDA_ARCHITECTURES=61
+  - cp -r /drone/src/llama.cpp /app && cd /app
+  - cmake -B build -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build --config Release --target llama-server -j $(nproc)
+  - cd ./build/bin/
+  - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
   image: ubuntu:jammy
   depends_on:
   - Get llama.cpp
   commands:
-  - cp -r /drone/src/llama.cpp /app
-  - cd /app
   - apt-get update && apt-get install -y git curl wget cmake build-essential
   - wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add -
   - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
   - apt-get update && apt-get install -y vulkan-sdk libcurl4-openssl-dev
+  - cp -r /drone/src/llama.cpp /app && cd /app
   - cmake -B build -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
   - cmake --build build --config Release --target llama-server -j $(nproc)
   - cd ./build/bin/
@@ -73,22 +72,23 @@ steps:
 #   - cd ./build-rocm/bin
 #   - tar -acf /drone/src/builds/llama-server-rocm.tar.gz llama-server
 
-# - name: Upload to Github
-#   image: ghcr.io/supportpal/github-gh-cli
-#   depends_on:
-#   - Build CPU
-#   - Build Cuda
-#   - Build Vulkan
-#   environment:
-#     GITHUB_TOKEN:
-#       from_secret: GITHUB_TOKEN
-#   entrypoint: ["/bin/bash"]
-#   commands:
-#   - ls -lh ./builds
-#   - export LLAMA_CPP_VERSION=$(cat ./builds/llama-cpp-version.txt)
-#   - |
-#     if gh release view $LLAMA_CPP_VERSION;
-#     then echo "Release ${LLAMA_CPP_VERSION} already exists";
-#     else gh release create $LLAMA_CPP_VERSION -t $LLAMA_CPP_VERSION -n "Automated release";
-#     fi
-#   - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
+- name: Upload to Github
+  image: ghcr.io/supportpal/github-gh-cli
+  depends_on:
+  - Build CPU
+  - Build Cuda
+  - Build Vulkan
+  environment:
+    GITHUB_TOKEN:
+      from_secret: GITHUB_TOKEN
+  entrypoint: ["/bin/bash"]
+  commands:
+  # Get the version from the llama.cpp repository
+  - export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
+  - ls -lh ./builds
+  - |
+    if gh release view $LLAMA_CPP_VERSION;
+    then echo "Release ${LLAMA_CPP_VERSION} already exists";
+    else gh release create $LLAMA_CPP_VERSION -t $LLAMA_CPP_VERSION -n "Automated release";
+    fi
+  - gh release upload --clobber $LLAMA_CPP_VERSION ./builds/*.tar.gz
