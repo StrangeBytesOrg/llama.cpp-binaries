@@ -81,6 +81,7 @@ steps:
   entrypoint: ["/bin/bash"]
   commands:
   # Get the version from the llama.cpp repository
+  - cd /drone/src/llama.cpp
   - export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
   - ls -lh ./builds
   - |
