@@ -29,18 +29,18 @@ steps:
   - cd ./build/bin/
   - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
 
-# - name: Build Cuda
-#   image: nvidia/cuda:12.6.0-devel-ubuntu24.04
-#   depends_on:
-#   - Get llama.cpp
-#   commands:
-#   - apt-get update && apt-get install -y git curl wget cmake build-essential
-#   # -DCMAKE_CUDA_ARCHITECTURES=61
-#   - cp -r /drone/src/llama.cpp /app && cd /app
-#   - cmake -B build -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-#   - cmake --build build --config Release --target llama-server -j $(nproc)
-#   - cd ./build/bin/
-#   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
+- name: Build Cuda
+  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
+  depends_on:
+  - Get llama.cpp
+  commands:
+  - apt-get update && apt-get install -y git curl wget cmake build-essential
+  # -DCMAKE_CUDA_ARCHITECTURES=61
+  - cp -r /drone/src/llama.cpp /app && cd /app
+  - cmake -B build -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake --build build --config Release --target llama-server -j $(nproc)
+  - cd ./build/bin/
+  - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
   image: ubuntu:24.04
@@ -76,7 +76,7 @@ steps:
   image: ghcr.io/supportpal/github-gh-cli
   depends_on:
   - Build CPU
-  # - Build Cuda
+  - Build Cuda
   - Build Vulkan
   environment:
     GITHUB_TOKEN:
