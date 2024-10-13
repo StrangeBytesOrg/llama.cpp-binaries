@@ -84,9 +84,14 @@ steps:
   entrypoint: ["/bin/bash"]
   commands:
   # Get the version from the llama.cpp repository
-  - cd /drone/src/llama.cpp && export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
+  - cd /drone/src/llama.cpp
+  - |
+    if [ -n "$VERSION" ];
+    then export LLAMA_CPP_VERSION=$VERSION;
+    else export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
+    fi
   - echo "Uploading to Github release $LLAMA_CPP_VERSION"
-  - cd /drone/src/builds && ls -la
+  - cd /drone/src/builds && ls -lah
   - |
     if gh release view $LLAMA_CPP_VERSION;
     then echo "Release ${LLAMA_CPP_VERSION} already exists";
