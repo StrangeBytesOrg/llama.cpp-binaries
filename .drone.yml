@@ -86,10 +86,10 @@ steps:
   # Get the version from the llama.cpp repository
   - cd /drone/src/llama.cpp && export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
   - echo "Uploading to Github release $LLAMA_CPP_VERSION"
-  - ls -lah /drone/src/builds
+  - cd /drone/src/builds && ls -la
   - |
     if gh release view $LLAMA_CPP_VERSION;
     then echo "Release ${LLAMA_CPP_VERSION} already exists";
     else gh release create $LLAMA_CPP_VERSION -t $LLAMA_CPP_VERSION -n "Automated release";
     fi
-  - gh release upload --clobber $LLAMA_CPP_VERSION /drone/src/builds/*.tar.gz
+  - gh release upload --clobber $LLAMA_CPP_VERSION ./*.tar.gz
