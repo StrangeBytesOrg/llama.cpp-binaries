@@ -43,11 +43,14 @@ steps:
   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
 - name: Build Vulkan
-  image: ghcr.io/strangebytesorg/vulkan:24.04
+  image: ubuntu:24.04
   depends_on:
   - Get llama.cpp
   commands:
-  - apt-get update && apt-get install -y git curl cmake build-essential libcurl4-openssl-dev
+  - apt-get update && apt-get install -y git curl wget cmake build-essential libcurl4-openssl-dev
+  - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
+  - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+  - apt-get update && apt-get install -y vulkan-sdk
   - cp -r /drone/src/llama.cpp /app && cd /app
   - cmake -B build -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
   - cmake --build build --config Release --target llama-server -j $(nproc)
@@ -81,9 +84,9 @@ steps:
   entrypoint: ["/bin/bash"]
   commands:
   # Get the version from the llama.cpp repository
-  - cd /drone/src/llama.cpp
-  - export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
-  - ls -lh ./builds
+  - cd /drone/src/llama.cpp && export LLAMA_CPP_VERSION=$(git describe --tags --abbrev=0);
+  - cd /drone/src/builds
+  - ls -lah
   - |
     if gh release view $LLAMA_CPP_VERSION;
     then echo "Release ${LLAMA_CPP_VERSION} already exists";
