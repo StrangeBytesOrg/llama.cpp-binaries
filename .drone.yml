@@ -24,38 +24,38 @@ steps:
   commands:
   - apt-get update && apt-get install -y git curl wget cmake build-essential
   - cp -r /drone/src/llama.cpp /app && cd /app
-  - cmake -B build -S . -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+  - cmake -B build -S . -DBUILD_SHARED_LIBS=OFF
   - cmake --build build --config Release --target llama-server -j $(nproc)
   - cd ./build/bin/
   - tar -acf /drone/src/builds/llama-server-cpu.tar.gz llama-server
-
-- name: Build Cuda
-  image: nvidia/cuda:12.6.0-devel-ubuntu24.04
-  depends_on:
-  - Get llama.cpp
-  commands:
-  - apt-get update && apt-get install -y git curl wget cmake build-essential
-  # -DCMAKE_CUDA_ARCHITECTURES=61
-  - cp -r /drone/src/llama.cpp /app && cd /app
-  - cmake -B build -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-  - cmake --build build --config Release --target llama-server -j $(nproc)
-  - cd ./build/bin/
-  - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
   
-- name: Build Vulkan
-  image: ubuntu:24.04
-  depends_on:
-  - Get llama.cpp
-  commands:
-  - apt-get update && apt-get install -y git curl wget cmake build-essential libcurl4-openssl-dev
-  - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
-  - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
-  - apt-get update && apt-get install -y vulkan-sdk
-  - cp -r /drone/src/llama.cpp /app && cd /app
-  - cmake -B build -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
-  - cmake --build build --config Release --target llama-server -j $(nproc)
-  - cd ./build/bin/
-  - tar -acf /drone/src/builds/llama-server-vulkan.tar.gz ./llama-server
+# - name: Build Vulkan
+#   image: ubuntu:24.04
+#   depends_on:
+#   - Get llama.cpp
+#   commands:
+#   - apt-get update && apt-get install -y git curl wget cmake build-essential
+#   - wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc
+#   - wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+#   - apt-get update && apt-get install -y vulkan-sdk
+#   - cp -r /drone/src/llama.cpp /app && cd /app
+#   - cmake -B build -S . -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+#   - cmake --build build --config Release --target llama-server -j $(nproc)
+#   - cd ./build/bin/
+#   - tar -acf /drone/src/builds/llama-server-vulkan.tar.gz ./llama-server
+
+# - name: Build Cuda
+#   image: nvidia/cuda:12.6.0-devel-ubuntu24.04
+#   depends_on:
+#   - Get llama.cpp
+#   commands:
+#   - apt-get update && apt-get install -y git curl wget cmake build-essential
+#   # -DCMAKE_CUDA_ARCHITECTURES=61
+#   - cp -r /drone/src/llama.cpp /app && cd /app
+#   - cmake -B build -S . -DGGML_CUDA=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+#   - cmake --build build --config Release --target llama-server -j $(nproc)
+#   - cd ./build/bin/
+#   - tar -acf /drone/src/builds/llama-server-cuda.tar.gz ./llama-server
 
 # - name: Build Rocm
 #   image: rocm/dev-ubuntu-24.04:6.2-complete
@@ -76,8 +76,8 @@ steps:
   image: ghcr.io/supportpal/github-gh-cli
   depends_on:
   - Build CPU
-  - Build Cuda
-  - Build Vulkan
+  # - Build Vulkan
+  # - Build Cuda
   environment:
     GITHUB_TOKEN:
       from_secret: GITHUB_TOKEN
